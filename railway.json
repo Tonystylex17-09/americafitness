@@ -6,4 +6,3 @@
     "startCommand": "cd backend && python main.py"
   }
 }
-Add railway.json for deployment
