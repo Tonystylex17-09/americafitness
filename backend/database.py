@@ -3,8 +3,14 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
 
-# Usar variable de entorno de Railway, o fallback a local
-DATABASE_URL = os.getenv("DATABASE_URL", "mysql+pymysql://root:admin123@localhost/americafitness_db")
+# Forzar uso de variable de entorno
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+# Si no encuentra la variable, usar la URL correcta de Railway (la que viste en variables)
+if not DATABASE_URL:
+    DATABASE_URL = "mysql://root:ASKrtcOhoVsWFugYqoHQchZgehiHGCwr@mysql.railway.internal:3306/railway"
+
+print(f"🔗 Conectando a: {DATABASE_URL}")
 
 engine = create_engine(DATABASE_URL, echo=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -16,4 +22,3 @@ def get_db():
         yield db
     finally:
         db.close()
-# redeploy
