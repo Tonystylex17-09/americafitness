@@ -706,7 +706,6 @@ def delete_exercise(
     if not exercise:
         raise HTTPException(status_code=404, detail="Ejercicio no encontrado")
     
-    # Eliminar también los registros asociados
     db.query(models.ExerciseRecord).filter(
         models.ExerciseRecord.exercise_id == exercise_id
     ).delete()
@@ -714,105 +713,7 @@ def delete_exercise(
     db.delete(exercise)
     db.commit()
     return {"message": "Ejercicio eliminado"}
-# ========== NUTRICIÓN ==========
-class NutritionData(BaseModel):
-    sex: str
-    weight: float
-    height: float
-    age: int
-    goal: str
 
-PLANES_VOLUMEN_HOMBRE = {
-    "nombre": "Volumen para Hombre",
-    "descripcion": "Enfoque en proteínas y carbohidratos complejos para ganar masa muscular",
-    "comidas": [
-        {"nombre": "Desayuno", "opciones": ["Avena con plátano y huevos revueltos (3 huevos)", "Tostada integral con aguacate y pechuga de pavo"]},
-        {"nombre": "Almuerzo", "opciones": ["Arroz integral + pechuga de pollo + brócoli", "Quinoa + lomo saltado de res + ensalada"]},
-        {"nombre": "Merienda", "opciones": ["Yogur griego con frutos secos", "Batido de proteína con leche"]},
-        {"nombre": "Cena", "opciones": ["Pescado a la plancha + puré de camote", "Tortilla de claras con espinacas"]},
-    ],
-    "tips": ["Aumenta porciones de carbohidratos en días de entrenamiento", "Hidrátate bien"]
-}
-
-PLANES_DEFINICION_HOMBRE = {
-    "nombre": "Definición para Hombre",
-    "descripcion": "Menos carbohidratos, más proteínas magras y verduras",
-    "comidas": [
-        {"nombre": "Desayuno", "opciones": ["Claras de huevo con espinacas y 1 tostada integral", "Batido de proteína con agua y frutos rojos"]},
-        {"nombre": "Almuerzo", "opciones": ["Pechuga de pollo a la plancha + ensalada verde", "Pescado blanco + espárragos"]},
-        {"nombre": "Merienda", "opciones": ["Gelatina sin azúcar", "Claras de huevo"]},
-        {"nombre": "Cena", "opciones": ["Pollo con brócoli", "Atún con palta"]},
-    ],
-    "tips": ["Reduce carbohidratos después de las 6pm", "Incrementa cardio"]
-}
-
-PLANES_VOLUMEN_MUJER = {
-    "nombre": "Volumen para Mujer",
-    "descripcion": "Enfoque en proteínas magras y carbohidratos de bajo índice glucémico",
-    "comidas": [
-        {"nombre": "Desayuno", "opciones": ["Avena con frutos rojos y claras", "Pan integral con ricotta y miel"]},
-        {"nombre": "Almuerzo", "opciones": ["Pechuga de pollo con quinoa y verduras", "Pescado con camote"]},
-        {"nombre": "Merienda", "opciones": ["Yogur natural con frutas", "Frutos secos"]},
-        {"nombre": "Cena", "opciones": ["Tortilla de claras con champiñones", "Salmon con espárragos"]},
-    ],
-    "tips": ["Mantén porciones moderadas", "No elimines grasas saludables"]
-}
-
-PLANES_DEFINICION_MUJER = {
-    "nombre": "Definición para Mujer",
-    "descripcion": "Alta proteína, baja en carbohidratos",
-    "comidas": [
-        {"nombre": "Desayuno", "opciones": ["Claras con espinacas", "Batido de proteína con agua"]},
-        {"nombre": "Almuerzo", "opciones": ["Pollo a la plancha + ensalada", "Atún con palta"]},
-        {"nombre": "Merienda", "opciones": ["Pepino con limón", "Gelatina sin azúcar"]},
-        {"nombre": "Cena", "opciones": ["Merluza al horno con verduras", "Tortilla de claras con espárragos"]},
-    ],
-    "tips": ["Evita azúcares", "Prioriza verduras de hoja verde"]
-}
-
-@app.post("/calculate-nutrition")
-def calculate_nutrition(data: NutritionData):
-    height_m = data.height / 100
-    imc = data.weight / (height_m * height_m)
-    
-    if data.sex == "male":
-        tmb = 88.362 + (13.397 * data.weight) + (4.799 * data.height) - (5.677 * data.age)
-    else:
-        tmb = 447.593 + (9.247 * data.weight) + (3.098 * data.height) - (4.330 * data.age)
-    
-    if data.goal == "volume":
-        calorias_base = tmb * 1.55
-        calorias_objetivo = calorias_base + 300
-    else:
-        calorias_base = tmb * 1.55
-        calorias_objetivo = calorias_base - 300
-    
-    calorias_min = calorias_objetivo - 200
-    calorias_max = calorias_objetivo + 200
-    
-    if data.sex == "male":
-        if data.goal == "volume":
-            plan = PLANES_VOLUMEN_HOMBRE
-        else:
-            plan = PLANES_DEFINICION_HOMBRE
-    else:
-        if data.goal == "volume":
-            plan = PLANES_VOLUMEN_MUJER
-        else:
-            plan = PLANES_DEFINICION_MUJER
-    
-    return {
-        "imc": round(imc, 1),
-        "tmb": round(tmb),
-        "calorias_base": round(calorias_base),
-        "calorias_objetivo": round(calorias_objetivo),
-        "rango_calorias": {
-            "min": round(calorias_min),
-            "max": round(calorias_max),
-            "mensaje": "Puedes consumir entre estas calorías, con margen para un dulce el fin de semana"
-        },
-        "plan": plan
-    }
 # ========== INSIGNIAS ==========
 @app.get("/badges")
 def get_badges(
@@ -986,11 +887,7 @@ def get_ranking(
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(auth.get_current_user)
 ):
-    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
-    
-    users = db.query(models.User).filter(
-        models.User.is_active == True
-    ).all()
+    users = db.query(models.User).filter(models.User.is_active == True).all()
     
     ranking = []
     for user in users:
@@ -1005,7 +902,6 @@ def get_ranking(
         })
     
     ranking.sort(key=lambda x: x["points"], reverse=True)
-    
     return ranking[:50]
 
 # ========== PLANES DE COMIDA ==========
@@ -1158,6 +1054,26 @@ def get_my_orders(
             "items": [{"product_name": item.product.name, "quantity": item.quantity, "price": item.price} for item in items]
         })
     return result
+
+# ========== TEMPORAL: Cambiar rol de usuario ==========
+@app.post("/make-admin/{username}")
+def make_admin(
+    username: str,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    # Solo super_admin puede hacer esto
+    if current_user.role != "super_admin":
+        raise HTTPException(status_code=403, detail="No tienes permisos")
+    
+    user = db.query(models.User).filter(models.User.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    user.role = "super_admin"
+    db.commit()
+    
+    return {"message": f"Usuario {username} ahora es super_admin"}
 
 if __name__ == "__main__":
     import uvicorn
