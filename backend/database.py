@@ -3,12 +3,16 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
 
-# Forzar uso de variable de entorno
+# Obtener la URL de Railway
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-# Si no encuentra la variable, usar la URL correcta de Railway (la que viste en variables)
+# Si no hay variable, usar la URL con el driver correcto
 if not DATABASE_URL:
-    DATABASE_URL = "mysql://root:ASKrtcOhoVsWFugYqoHQchZgehiHGCwr@mysql.railway.internal:3306/railway"
+    DATABASE_URL = "mysql+pymysql://root:ASKrtcOhoVsWFugYqoHQchZgehiHGCwr@mysql.railway.internal:3306/railway"
+else:
+    # Si la URL no tiene el driver, agregarlo
+    if not DATABASE_URL.startswith("mysql+pymysql"):
+        DATABASE_URL = DATABASE_URL.replace("mysql://", "mysql+pymysql://")
 
 print(f"🔗 Conectando a: {DATABASE_URL}")
 
